@@ -1,0 +1,112 @@
+// ArenaFlow — Prisma Schema
+// SQLite for development, swap DATABASE_URL for Postgres in production
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  password  String
+  role      String   @default("recepcionista") // "admin" | "recepcionista"
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Student {
+  id           String    @id @default(cuid())
+  name         String
+  phone        String
+  email        String?
+  birthDate    String?
+  plan         String    @default("Mensal")
+  monthlyFee   Float     @default(0)
+  dueDate      Int       @default(1) // day of month
+  status       String    @default("ativo") // "ativo" | "pendente" | "inativo"
+  notes        String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  attendances Attendance[]
+
+}
+
+model Attendance {
+  id        String   @id @default(cuid())
+  studentId String
+  date      String   // ISO date string
+  createdAt DateTime @default(now())
+
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+}
+
+model Court {
+  id           String   @id @default(cuid())
+  name         String
+  description  String?
+  pricePerHour Float    @default(100)
+  openingTime  String   @default("07:00")
+  closingTime  String   @default("22:00")
+  status       String   @default("ativa") // "ativa" | "inativa"
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  reservations Reservation[]
+}
+
+model Reservation {
+  id              String   @id @default(cuid())
+  courtId         String
+  customerName    String
+  customerPhone   String
+  reservationDate String   // ISO date string YYYY-MM-DD
+  startTime       String   // HH:MM
+  endTime         String   // HH:MM
+  duration        Float    @default(1) // hours
+  value           Float    @default(0)
+  paymentMethod   String   @default("pix")
+  status          String   @default("pendente") // "pendente" | "confirmado" | "cancelado" | "concluido"
+  notes           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  court Court @relation(fields: [courtId], references: [id], onDelete: Cascade)
+}
+
+model Payment {
+  id            String    @id @default(cuid())
+  type          String    // "mensalidade" | "reserva"
+  referenceId   String?   // studentId or reservationId
+  customerName  String
+  value         Float
+  paymentMethod String    @default("pix")
+  dueDate       String?   // ISO date string
+  paymentDate   String?   // ISO date string
+  status        String    @default("pendente") // "pago" | "pendente" | "vencido"
+  origin        String    @default("academia") // "academia" | "quadra"
+  notes         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // referenceId is generic: studentId for mensalidade, reservationId for reserva
+}
+
+model Settings {
+  id                    String @id @default(cuid())
+  gymName               String @default("ArenaFlow")
+  phone                 String @default("")
+  email                 String @default("")
+  address               String @default("")
+  openingHours          String @default("07:00 - 22:00")
+  workingDays           String @default("Segunda a Sábado")
+  acceptedPaymentMethods String @default("pix,cartao_credito,cartao_debito,dinheiro,boleto")
+  plans                 String @default("[]") // JSON string of plan objects
+  updatedAt             DateTime @updatedAt
+}
